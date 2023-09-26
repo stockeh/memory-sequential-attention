@@ -51,6 +51,11 @@ class Trainer:
         self.device = device
         self.model.to(self.device)
 
+        print(self.model)
+        print("Total number of parameters: {}".format(
+            sum(p.numel() for p in self.model.parameters()))
+        )
+
         # initialize optimizer and scheduler
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=config['lr']
@@ -82,8 +87,11 @@ class Trainer:
         # testing params
         self.M = config['m']
         self.n_saved_samples = config['n_saved_samples']
+        self.random_loc = config.get('random_loc', False)
 
         # misc params
+        self.loc = config.get('loc', 'random')
+
         self.resume = config['resume']
         self.seed = config['seed']
         self.model_name = config['model_name']
@@ -336,16 +344,20 @@ class Trainer:
         losses = AverageMeter()
         accs = AverageMeter()
 
-        plot_inds = []
-        # TODO: allow for duplicates from each class
-        for t in torch.unique(Tval):
-            inds = (Tval == t).nonzero().flatten()
-            # this will reset the model.reset seed
-            torch.manual_seed(self.seed)  # + 1)
-            plot_inds.append(inds[torch.randperm(len(inds))[:1]])
-            if len(plot_inds) == self.n_saved_samples:
-                break
-        plot_inds = torch.cat(plot_inds)
+        if self.n_saved_samples == len(Xval) or self.n_saved_samples == -1:
+            torch.manual_seed(self.seed)
+            plot_inds = torch.arange(len(Xval))
+        else:
+            plot_inds = []
+            # TODO: allow for duplicates from each class
+            for t in torch.unique(Tval):
+                inds = (Tval == t).nonzero().flatten()
+                # this will reset the model.reset seed
+                torch.manual_seed(self.seed)  # + 1)
+                plot_inds.append(inds[torch.randperm(len(inds))[:1]])
+                if len(plot_inds) == self.n_saved_samples:
+                    break
+            plot_inds = torch.cat(plot_inds)
 
         # torch.manual_seed(self.seed)
         # plot_inds = torch.randperm(Xval.shape[0])[:self.n_saved_samples]
@@ -366,7 +378,7 @@ class Trainer:
             if self.M > 1:
                 X = X.repeat(self.M, 1, 1, 1)
 
-            h_t, l_t = self.model.reset(X.shape[0], self.device)
+            h_t, l_t = self.model.reset(X.shape[0], self.device, loc=self.loc)
 
             locs = []
             log_pi = []
@@ -382,6 +394,10 @@ class Trainer:
                     G.append(torch.max(F.log_softmax(a_t, dim=1), 1)[1])
                 else:
                     h_t, l_t, b_t, p = self.model(X, l_t, h_t)
+
+                if self.random_loc:
+                    l_t = torch.FloatTensor(X.shape[0], 2).uniform_(-1, 1).to(
+                        self.device)
 
                 baselines.append(b_t)
                 log_pi.append(p)
@@ -435,7 +451,6 @@ class Trainer:
                 f"[*] test loss: {losses.avg:.3f} - "
                 f"test acc: {accs.avg:.3f} - test err: {100 - accs.avg:.3f}"
             )
-
         if self.n_saved_samples > 0:
             output_npz_file = 'test.npz' if test else f'val_{epoch + 1}.npz'
 

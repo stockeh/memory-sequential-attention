@@ -3,7 +3,7 @@ resume: False
 seed: 1234
 cuda: True
 m: 1
-n_saved_samples: 10
+n_saved_samples: 0
 data_name: cluttered
 data_dir: /s/chopin/l/grad/stock/nvme/data/cs/cluttered-mnist
 ckpt_dir: ../ckpt/hyper/cluttered
@@ -31,3 +31,5 @@ lr: 0.0003
 lr_patience: 20
 batch_size: 128
 train_patience: 40
+loc: random
+random_loc: False

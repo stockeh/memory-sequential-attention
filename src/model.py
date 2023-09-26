@@ -54,7 +54,12 @@ class RecurrentAttention(nn.Module):
         self.classifier = modules.ActionNetwork(n_hiddens, n_outputs)
         self.baseliner = modules.BaselineNetwork(n_hiddens)
 
-    def reset(self, batch_size, device):
+    def reset(self, batch_size, device, loc='random'):
+        """
+        batch_size: size of the batch
+        device: cpu or gpu
+        loc: [center, top-left, top-middle, bottom-right, bottom-middle, random]
+        """
         h_t = torch.zeros(
             batch_size,
             self.n_hiddens,
@@ -62,11 +67,23 @@ class RecurrentAttention(nn.Module):
             device=device,
             requires_grad=True,
         )
-        l_t = torch.FloatTensor(  # random location
-            batch_size, 2).uniform_(-1, 1).to(device)
-        # TODO: test centered location
-        # l_t = torch.zeros(
-        #     batch_size, 2).to(device)
+        if loc == 'center':
+            l_t = torch.zeros(batch_size, 2)
+        elif loc == 'top-middle':
+            l_t = torch.zeros(batch_size, 2)
+            l_t[:, 1] = -1.
+        elif loc == 'top-left':
+            l_t = torch.ones(batch_size, 2)
+            l_t *= -1.
+        elif loc == 'bottom-right':
+            l_t = torch.ones(batch_size, 2)
+        elif loc == 'bottom-middle':
+            l_t = torch.zeros(batch_size, 2)
+            l_t[:, 0] = 1.
+        else:  # random
+            l_t = torch.FloatTensor(batch_size, 2).uniform_(-1, 1)
+
+        l_t = l_t.to(device)
         l_t.requires_grad = True
 
         if self.use_memory:

@@ -40,6 +40,8 @@ def main(args):
         config['data_dir'] = '/s/chopin/l/grad/stock/nvme/data/ai2es/mlhub/nasa_tc'
     elif args.dataset == 'intel':
         config['data_dir'] = '/s/chopin/l/grad/stock/nvme/data/cs/intel-img/'
+    elif args.dataset == 'cifar':
+        config['data_dir'] = '/s/chopin/l/grad/stock/nvme/data/cs/cifar-10-batches-py'
 
     config['seed'] = 1234  # 1235, 1236
 
@@ -86,6 +88,13 @@ def main(args):
                 epochs = 30
 
             elif args.dataset == 'intel':
+                conv_layers = [{'n_units': 8, 'shape': 3},
+                               {'n_units': 16, 'shape': 3},
+                               {'n_units': 32, 'shape': 3},
+                               {'n_units': 64, 'shape': 3}]
+                epochs = 30
+
+            elif args.dataset == 'cifar':
                 conv_layers = [{'n_units': 8, 'shape': 3},
                                {'n_units': 16, 'shape': 3},
                                {'n_units': 32, 'shape': 3},

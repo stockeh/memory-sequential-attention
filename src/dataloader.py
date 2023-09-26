@@ -4,7 +4,8 @@ import gzip
 import copy
 import pickle
 import torch
-import cv2
+# import cv2
+import glob
 
 import PIL.Image
 import pandas as pd
@@ -27,17 +28,19 @@ def _intel(data_dir, seed):
                    'glacier', 'buildings', 'sea', 'forest']
 
     def _load_data(dir, class_names):
-        W, H = 128, 128
-        X, T = [], []
-        for t, class_name in enumerate(class_names):
-            class_dir = os.path.join(dir, class_name)
-            for file in os.listdir(class_dir):
-                img = cv2.imread(os.path.join(class_dir, file))
-                img = cv2.resize(cv2.cvtColor(
-                    img, cv2.COLOR_BGR2RGB), (W, H)) / 255.
-                X.append(img)
-                T.append(t)
-        return np.stack(X).transpose(0, 3, 1, 2), np.array(T).reshape(-1, 1)
+        # TODO: import cv2
+        # W, H = 128, 128
+        # X, T = [], []
+        # for t, class_name in enumerate(class_names):
+        #     class_dir = os.path.join(dir, class_name)
+        #     for file in os.listdir(class_dir):
+        #         img = cv2.imread(os.path.join(class_dir, file))
+        #         img = cv2.resize(cv2.cvtColor(
+        #             img, cv2.COLOR_BGR2RGB), (W, H)) / 255.
+        #         X.append(img)
+        #         T.append(t)
+        # return np.stack(X).transpose(0, 3, 1, 2), np.array(T).reshape(-1, 1)
+        return None, None
 
     train_dir = os.path.join(data_dir, 'seg_train')
     test_dir = os.path.join(data_dir, 'seg_test')
@@ -46,7 +49,7 @@ def _intel(data_dir, seed):
     Xtest, Ttest = _load_data(test_dir, class_names)
 
     Xtrain, Ttrain, Xval, Tval = ml.partition(Xtrain, Ttrain, 0.80, shuffle=True,
-                                              classification=True, seed=1234)
+                                              classification=True, seed=seed)
 
     print(np.unique(Ttrain, return_counts=True),
           np.unique(Tval, return_counts=True),
@@ -193,6 +196,43 @@ def _tc(data_dir, seed):
     return Xtrain, Ttrain, Xval, Tval, Xtest, Ttest
 
 
+def _cifar(data_dir, seed):
+    def load(file_name):
+        data = []
+
+        for file in glob.glob(os.path.join(data_dir, file_name)):
+            with open(file, 'rb') as fo:
+                data.append(pickle.load(fo, encoding='bytes'))
+
+        images = np.array(data[0][b'data'])
+        labels = np.array(data[0][b'labels'])
+
+        if len(data) > 1:
+            for i in range(1, len(data)):
+                images = np.concatenate((images, data[i][b'data']), axis=0)
+                labels = np.concatenate((labels, data[i][b'labels']), axis=0)
+
+        return (images.reshape(-1, 3, 32, 32)/255.0).astype(np.float32), labels.reshape((-1, 1))
+
+    Xtrain, Ttrain = load('data_batch_*')
+    Xtest, Ttest, = load('test_batch')
+
+    Xtrain, Ttrain, Xval, Tval = ml.partition(Xtrain, Ttrain, 0.80, shuffle=True,
+                                              classification=True, seed=seed)
+
+    print(np.unique(Ttrain, return_counts=True),
+          np.unique(Tval, return_counts=True),
+          np.unique(Ttest, return_counts=True), sep='\n')
+
+    print(Xtrain.shape, Xval.shape, Xtest.shape, sep='\n')
+
+    with open(os.path.join(data_dir, 'batches.meta'), 'rb') as f:
+        class_names = pickle.load(f, encoding='bytes')
+    class_names = class_names[b'label_names']
+
+    return Xtrain, Ttrain, Xval, Tval, Xtest, Ttest
+
+
 def _cluttered(data_dir):
     dim = 60
     mnist_cluttered = 'mnist_cluttered_60x60_6distortions.npz'
@@ -237,6 +277,9 @@ def get_dataset(config, test=False, all=False):
             data_dir, config['seed'])
     elif data_name == 'intel':
         Xtrain, Ttrain, Xval, Tval, Xtest, Ttest = _intel(
+            data_dir, config['seed'])
+    elif data_name == 'cifar':
+        Xtrain, Ttrain, Xval, Tval, Xtest, Ttest = _cifar(
             data_dir, config['seed'])
 
     if all:
