@@ -1,5 +1,17 @@
 ## Memory-Based Sequential Attention
 
+
+<p align="center">
+  <img width="1394" alt="Screenshot 2024-04-15 at 9 50 07 AM" src="https://github.com/stockeh/memory-sequential-attention/assets/27117910/b09e0f57-3e80-46ef-9ef1-e7bd740b2d91">
+  <br/>
+  <span>
+  Jason Stock & Charles Anderson 
+    [<a href='https://openreview.net/forum?id=EykfhjYrM0' target="_blank" rel="noopener noreferrer">paper</a>]
+    [<a href='#citation'>citation</a>]
+  </span>
+</p>
+
+
 #### Directories
 
 - `src` : contains all the python scripts for the project
@@ -145,3 +157,15 @@ optional arguments:
 #### Comments
 
 All experiments are were conducted on an NVIDIA GeForce RTX 3090 (24GB), Intel i9-11900F @ 2.50GHz, and 128GB memory.
+
+<a id="citation"></a>
+#### Citation
+
+```
+@inproceedings{stock2023memory,
+  title={Memory-Based Sequential Attention},
+  author={Stock, Jason and Anderson, Charles},
+  booktitle={NeuRIPS 2023 Workshop on Gaze Meets ML},
+  year={2023}
+}
+```
